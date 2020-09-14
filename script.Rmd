@@ -1,0 +1,8 @@
+---
+title: "Script"
+author: "Sarah Roberts"
+date: "9/14/2020"
+output: html_document
+---
+
+The purpose of this script is to help Crystal and Bea with their MP projects. In this script I will start from the dataset that I created called total.csv. To create total, follow the steps here: https://github.com/sr197/Sticky_Fish. That script requires the user to download NEFSC bottom trawl survey data from Ocean Adapt. https://oceanadapt.rutgers.edu/ . 
