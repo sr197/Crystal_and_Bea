@@ -369,4 +369,4 @@ ggplot(dat.m, aes(x=year, y=value)) +
 
 ```
 
-so croaker have moved offshore and north while cod have gone offshore and deeper. cool!
+so croaker have moved offshore and north while cod have gone offshore and deeper. cool! this would be interesting to compare their environmental influences as well. 
