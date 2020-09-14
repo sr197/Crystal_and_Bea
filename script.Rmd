@@ -6,3 +6,84 @@ output: html_document
 ---
 
 The purpose of this script is to help Crystal and Bea with their MP projects. In this script I will start from the dataset that I created called total.csv. To create total, follow the steps here: https://github.com/sr197/Sticky_Fish. That script requires the user to download NEFSC bottom trawl survey data from Ocean Adapt. https://oceanadapt.rutgers.edu/ . 
+
+This script does the following: 
+1. Explore the dataset including species collected, environmental variables, spatial distribution. 
+2. Run species distribution models for presence absence and biomass. 
+
+#packages 
+```{r}
+library(tidyverse) #for data manipulation 
+library(dplyr) #for data manipulation 
+library(mgcv) #for running gams 
+#spatial 
+library(sp) #mean centroid
+library(spatialEco)#mean centroid
+library(geosphere)#mean centroid
+library(rgdal)#kernel density 
+library(adehabitatHR)#kernel density 
+library(ks)#kernel density 
+library(sf)#kernel density 
+library(raster) #kernel density projection 
+#plotting 
+library(ggplot2) 
+library(ggpmisc)
+library(reshape)
+library(ggpubr)
+library(ggsci)
+library(scales)
+library(rnaturalearth) #gives you some nice shapefiles 
+
+```
+
+#1 Explore data 
+```{r}
+total <- read.csv("total.csv")
+View(total)
+colnames(total)
+```
+
+##Atlantic cod 
+Lets just select out cod and some other env variables
+```{r}
+cod <- total %>% dplyr::select(GADUS.MORHUA, year, date, lat, lon, depth, SEDIMENT, bottemp, surfsalin, season)
+```
+
+lets explore how many cod there are 
+```{r}
+sum(cod$GADUS.MORHUA>0)
+#they are present in 4000 tows, that seems like a lot
+```
+
+lets make a dataset of presence absence 
+```{r}
+cod_pres <- cod
+cod_pres$GADUS.MORHUA[cod_pres$GADUS.MORHUA > 0] <- 1 
+
+
+cod_pres$GADUS.MORHUA[cod_pres$GADUS.MORHUA=="0"] <- "absent"
+cod_pres$GADUS.MORHUA[cod_pres$GADUS.MORHUA=="1"] <- "present"
+```
+
+lets plot the data 
+```{r}
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+ggplot(data = world) +
+     geom_sf() +
+    geom_point(data = cod_pres, aes(x = lon, y = lat, col = GADUS.MORHUA)) +
+    coord_sf(xlim=c(-90, -60), ylim=c(30,50), expand = FALSE)
+
+ggplot(data = world) +
+     geom_sf() +
+    geom_point(data = subset(cod, cod$GADUS.MORHUA>0), aes(x = lon, y = lat, col = GADUS.MORHUA)) + scale_colour_gradientn(colors = c("#fff7f3", "#fde0dd","#fcc5c0", "#fa9fb5", "#f768a1","#dd3497","#ae017e","#7a0177","#49006a"), values = rescale(c( .01, .05, .1, 1, 50))) +
+    coord_sf(xlim=c(-90, -60), ylim=c(30,50), expand = FALSE)
+```
+
+
+#Modeling 
+I can think of two questions related to cod. 
+1. How does climate and (insert other variable like fishing pressure) influence the biomass of cod. Which variables influence cods biomass more? 
+2. How does climate and x influence the spatial distribution of cod? 
+  This question is going to need to look into calculating measurements of distribution (i.e range size, mean centroid, etc)
