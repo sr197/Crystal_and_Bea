@@ -41,7 +41,7 @@ library(rnaturalearth) #gives you some nice shapefiles
 ```{r}
 total <- read.csv("total.csv")
 View(total)
-colnames(total)
+
 ```
 I am going to make a quick version of sediment that is not a factor so instead it is sediment size. 
 ```{r}
@@ -370,3 +370,76 @@ ggplot(dat.m, aes(x=year, y=value)) +
 ```
 
 so croaker have moved offshore and north while cod have gone offshore and deeper. cool! this would be interesting to compare their environmental influences as well. 
+
+
+You can also calculate spatial range: 
+```{r}
+library(rgdal)
+library(adehabitatHR)
+library(ks)
+library(sf)
+
+total <- read.csv("total.csv")
+
+fall <- total %>% filter(season == "FALL")
+
+names(fall)<-make.names(names(fall),unique = TRUE)
+
+
+#Lets select out the time period chunks we want 
+total_fall_sp_86_90 <- subset(fall, year < 1991)
+total_fall_sp_14_18 <- subset(fall, year > 2013)
+
+#total_sp_85_90 <- total_sp_85_90 %>% drop_na()
+coordinates(total_fall_sp_86_90) <- ~ lon + lat
+coordinates(total_fall_sp_14_18) <- ~ lon + lat
+
+
+
+
+```
+
+###5.3.1 fall
+```{r}
+spec_vol_fall_85_90 <- data.frame(matrix(ncol=6, nrow=1))
+colnames(spec_vol_fall_85_90) <- c("names", "vol", "xmin", "xmax", "ymin", "ymax")
+
+#for each species in spec_list
+  kernel_density <- sp.kde(x = total_fall_sp_86_90, y = as.matrix(total_fall_sp_86_90@data["GADUS.MORHUA"]), bw=5, nr=100, nc= 100,
+standardize = TRUE)
+  projection(kernel_density) <- "+proj=longlat +datum=WGS84"
+  #test_kd_m <- projectRaster(test_kd, crs = "+proj=utm +zone=17 +ellps=GRS80 +datum=NAD83 +units=m +no_defs") #this is used with raster::area(test_kd) to find cell size in meters
+  vol_rast <- calc(kernel_density, fun=function(kernel_density){ kernel_density[kernel_density < .95] <- NA; return(kernel_density)} )
+  
+  
+  ggplot() +
+     layer_spatial(kernel_density) + scale_colour_gradientn(colors = c("#fff7f3", "#fde0dd","#fcc5c0", "#fa9fb5", "#f768a1","#dd3497","#ae017e","#7a0177","#49006a")) +
+     geom_sf(data = world) + 
+    coord_sf(xlim=c(-90, -60), ylim=c(30,50), expand = FALSE)
+  
+ggplot() +
+     layer_spatial(vol_rast) + scale_colour_gradientn(colors = c("#fff7f3", "#fde0dd","#fcc5c0", "#fa9fb5", "#f768a1","#dd3497","#ae017e","#7a0177","#49006a")) +
+     geom_sf(data = world) + 
+    coord_sf(xlim=c(-90, -60), ylim=c(30,50), expand = FALSE)
+  
+```
+
+
+get out information like range extent if you want. 
+```{r}
+  
+  
+  range <- trim(kernel_density)
+  vol <- as.matrix(range@data@values)
+  vol <- apply(vol, 2, function(x) length(which(!is.na(x))))
+  #cell size in degrees 0.1006667, 0.0895
+  # cell size in meters is 26317.956589, 24828.26971
+  vol <- vol* 8590*10000  #this is the 95% range in meters squared
+  xmin <- range@extent@xmin
+  xmax <- range@extent@xmax
+  ymin <- range@extent@ymin
+  ymax <- range@extent@ymax
+
+```
+
+There are ways to do this in ArcPro. Use the kernel density function or the MS function. 
